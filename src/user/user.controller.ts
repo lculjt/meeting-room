@@ -14,6 +14,12 @@ export class UserController {
   @Inject(EmailService)
   private readonly emailService: EmailService;
 
+  @Get('init-data')
+  async initData() {
+    await this.userService.initData();
+    return 'done';
+  }
+
   @Post('register')
   async register(@Body() registerUser: RegisterUserDto) {
     return await this.userService.register(registerUser);
