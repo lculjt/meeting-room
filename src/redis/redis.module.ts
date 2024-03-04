@@ -1,23 +1,25 @@
 import { Module, Global } from '@nestjs/common';
 import { RedisService } from './redis.service';
 import { createClient } from 'redis';
+import { ConfigService } from '@nestjs/config';
 @Global()
 @Module({
   providers: [
     RedisService,
     {
       provide: 'REDIS_CLIENT',
-      useFactory: async () => {
+      useFactory: async (configService: ConfigService) => {
         const client = createClient({
           socket: {
-            host: '127.0.0.1',
-            port: 6379,
+            host: configService.get('redis_server_host'),
+            port: configService.get('redis_server_port'),
           },
-          database: 1, // redis 不同的命名空间
+          database: configService.get('redis_server_db'), // redis 不同的命名空间
         });
         await client.connect();
         return client;
       },
+      inject: [ConfigService], //注入
     },
   ],
   exports: [RedisService],
