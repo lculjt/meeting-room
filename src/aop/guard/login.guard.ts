@@ -8,7 +8,7 @@ import {
 import { Reflector } from '@nestjs/core';
 import { Observable } from 'rxjs';
 import { JwtService } from '@nestjs/jwt';
-import { JwtUserData } from './@type/express';
+import { JwtUserData } from '../../@type/express';
 import { Request } from 'express';
 @Injectable()
 export class LoginGuard implements CanActivate {
