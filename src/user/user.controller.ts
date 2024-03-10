@@ -19,7 +19,9 @@ import {
   RequirePermission,
   UserData,
 } from 'src/helper/decorator';
-
+import { UserDetailVo } from './vo/user-info.vo';
+import { UpdateUserPasswordDto } from './dto/update-user-password.dto';
+import { UpdateUserDto } from './dto/update-user.dto';
 @Controller('user')
 export class UserController {
   private generateAccessToken: (info: UserInfo) => string;
@@ -147,5 +149,78 @@ export class UserController {
       html: `<p>你的注册验证码是 ${code}</p>`,
     });
     return 'success';
+  }
+
+  @Get('update_password/captcha')
+  async updatePasswordCaptcha(@Query('address') address: string) {
+    const code = Math.random().toString().slice(2, 8);
+
+    await this.redisService.set(
+      `update_password_captcha_${address}`,
+      code,
+      10 * 60,
+    );
+
+    await this.emailService.sendMail({
+      to: address,
+      subject: '更改密码验证码',
+      html: `<p>你的更改密码验证码是 ${code}</p>`,
+    });
+    return '发送成功';
+  }
+
+  @Get('info')
+  @RequireLogin()
+  async getInfo(@UserData('userId') userId: number) {
+    const userInfo = await this.userService.findUserDetailById(userId);
+
+    const vo = new UserDetailVo();
+    vo.id = userInfo.id;
+    vo.email = userInfo.email;
+    vo.username = userInfo.username;
+    vo.headPic = userInfo.headPic;
+    vo.phoneNumber = userInfo.phoneNumber;
+    vo.nickName = userInfo.nickName;
+    vo.createTime = userInfo.createTime;
+    vo.isFrozen = userInfo.isFrozen;
+
+    return vo;
+  }
+
+  @Post(['update_password', 'admin/update_password'])
+  @RequireLogin()
+  async updatePassword(
+    @UserData('userId') userId: number,
+    @Body() passwordDto: UpdateUserPasswordDto,
+  ) {
+    await this.userService.updatePassword(userId, passwordDto);
+    return 'success';
+  }
+
+  @Post(['update', 'admin/update'])
+  @RequireLogin()
+  async update(
+    @UserData('userId') userId: number,
+    @Body() updateUserDto: UpdateUserDto,
+  ) {
+    return await this.userService.update(userId, updateUserDto);
+  }
+
+  @Get('update/captcha')
+  async updateCaptcha(@Query('address') address: string) {
+    const code = Math.random().toString().slice(2, 8);
+
+    await this.redisService.set(
+      `update_user_captcha_${address}`,
+      code,
+      10 * 60,
+    );
+
+    await this.emailService.sendMail({
+      to: address,
+      subject: '更改用户信息验证码',
+      html: `<p>你的验证码是 ${code}</p>`,
+    });
+    return '发送成功';
   }
 }

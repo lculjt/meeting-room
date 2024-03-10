@@ -15,6 +15,8 @@ import { Role } from './entities/role.entity';
 import { Permission } from './entities/permission.entity';
 import { LoginUserDto } from './dto/login-user.dto';
 import { LoginUserVo } from './vo/login-user.vo';
+import { UpdateUserPasswordDto } from './dto/update-user-password.dto';
+import { UpdateUserDto } from './dto/update-user.dto';
 @Injectable()
 export class UserService {
   private logger = new Logger();
@@ -153,5 +155,79 @@ export class UserService {
       relations: ['roles', 'roles.permissions'],
     });
     return this.getUsersVo(user).userInfo;
+  }
+
+  async findUserDetailById(userId: number) {
+    const userDetail = await this.userRepository.findOne({
+      where: {
+        id: userId,
+      },
+    });
+
+    return userDetail;
+  }
+
+  async updatePassword(userId: number, passwordDto: UpdateUserPasswordDto) {
+    const captcha = await this.redisService.get(
+      `update_password_captcha_${passwordDto.email}`,
+    );
+
+    if (!captcha) {
+      throw new HttpException('验证码已失效', HttpStatus.BAD_REQUEST);
+    }
+
+    if (captcha !== passwordDto.captcha) {
+      throw new HttpException('验证码错误', HttpStatus.BAD_REQUEST);
+    }
+
+    const user = await this.userRepository.findOne({
+      where: {
+        id: userId,
+      },
+    });
+    console.log(user);
+    user.password = md5(passwordDto.password);
+
+    try {
+      await this.userRepository.save(user);
+      return 'success';
+    } catch (e) {
+      this.logger.error(e, UserService);
+      return 'fail';
+    }
+  }
+
+  async update(userId: number, updateUserDto: UpdateUserDto) {
+    const captcha = await this.redisService.get(
+      `update_captcha_${updateUserDto.email}`,
+    );
+
+    if (!captcha) {
+      throw new HttpException('验证码已失效', HttpStatus.BAD_REQUEST);
+    }
+
+    if (captcha !== updateUserDto.captcha) {
+      throw new HttpException('验证码错误', HttpStatus.BAD_REQUEST);
+    }
+
+    const user = await this.userRepository.findOne({
+      where: {
+        id: userId,
+      },
+    });
+    if (updateUserDto.nickName) {
+      user.nickName = updateUserDto.nickName;
+    }
+    if (updateUserDto.headPic) {
+      user.headPic = updateUserDto.headPic;
+    }
+
+    try {
+      await this.userRepository.save(user);
+      return 'success';
+    } catch (e) {
+      this.logger.error(e, UserService);
+      return 'failed';
+    }
   }
 }
