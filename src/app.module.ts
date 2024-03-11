@@ -10,11 +10,12 @@ import { RedisModule } from './redis/redis.module';
 import { EmailModule } from './email/email.module';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
-import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
+import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { LoginGuard } from './aop/guard/login.guard';
 import { PermissionGuard } from './aop/guard/permission.guard';
 import { FormatResponseInterceptor } from './aop/interceptor/format-response.interceptor';
 import { InvokeRecordInterceptor } from './aop/interceptor/invoke-record.interceptor';
+import { CustomExceptionFilter } from './aop/filter/custom-exception.filter';
 @Module({
   imports: [
     JwtModule.registerAsync({
@@ -76,6 +77,10 @@ import { InvokeRecordInterceptor } from './aop/interceptor/invoke-record.interce
     {
       provide: APP_INTERCEPTOR,
       useClass: FormatResponseInterceptor,
+    },
+    {
+      provide: APP_FILTER,
+      useClass: CustomExceptionFilter,
     },
   ],
 })

@@ -5,7 +5,7 @@ import {
   HttpException,
   HttpStatus,
 } from '@nestjs/common';
-import { Repository } from 'typeorm';
+import { Repository, Like } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import { User } from './entities/user.entity';
 import { RegisterUserDto } from './dto/register.dto';
@@ -229,5 +229,60 @@ export class UserService {
       this.logger.error(e, UserService);
       return 'failed';
     }
+  }
+
+  async freezeUserById(userId: number) {
+    const user = await this.userRepository.findOne({
+      where: {
+        id: userId,
+      },
+    });
+
+    user.isFrozen = true;
+
+    await this.userRepository.save(user);
+  }
+
+  async findUsersByPage(
+    pageNo: number,
+    pageSize: number,
+    username?: string,
+    nickName?: string,
+    email?: string,
+  ) {
+    const skip = pageSize * (pageNo - 1);
+
+    const condition: Record<string, any> = {};
+
+    if (username) {
+      condition.username = Like(`%${username}%`);
+    }
+    if (nickName) {
+      condition.nickName = Like(`%${nickName}%`);
+    }
+    if (email) {
+      condition.email = Like(`%${email}%`);
+    }
+
+    const [users, totalCount] = await this.userRepository.findAndCount({
+      select: [
+        'id',
+        'username',
+        'nickName',
+        'email',
+        'phoneNumber',
+        'isFrozen',
+        'headPic',
+        'createTime',
+      ],
+      skip,
+      take: pageSize,
+      where: condition,
+    });
+
+    return {
+      users,
+      totalCount,
+    };
   }
 }
