@@ -5,8 +5,8 @@ import {
   Query,
   Get,
   UnauthorizedException,
-  ParseIntPipe,
   DefaultValuePipe,
+  HttpStatus,
 } from '@nestjs/common';
 import { UserService } from './user.service';
 import { RegisterUserDto } from './dto/register.dto';
@@ -25,7 +25,15 @@ import { UserDetailVo } from './vo/user-info.vo';
 import { UpdateUserPasswordDto } from './dto/update-user-password.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { generateParseIntPipe } from 'src/utils';
+import {
+  ApiQuery,
+  ApiResponse,
+  ApiTags,
+  ApiBody,
+  ApiBearerAuth,
+} from '@nestjs/swagger';
 
+@ApiTags('用户管理模块')
 @Controller('user')
 export class UserController {
   private generateAccessToken: (info: UserInfo) => string;
@@ -70,6 +78,17 @@ export class UserController {
     return 'done';
   }
 
+  @ApiBody({ type: RegisterUserDto })
+  @ApiResponse({
+    status: HttpStatus.BAD_REQUEST,
+    description: '验证码已失效/验证码不正确/用户已存在',
+    type: String,
+  })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: '注册成功/失败',
+    type: String,
+  })
   @Post('register')
   async register(@Body() registerUser: RegisterUserDto) {
     return await this.userService.register(registerUser);
@@ -141,6 +160,18 @@ export class UserController {
     }
   }
 
+  @ApiQuery({
+    name: 'address',
+    type: String,
+    required: true,
+    description: '邮箱地址',
+    example: 'xxx@xx.com',
+  })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: '发送成功',
+    type: String,
+  })
   @Get('register-captcha')
   async captcha(@Query('address') address: string) {
     const code = Math.random().toString().slice(2, 8);
@@ -174,6 +205,7 @@ export class UserController {
   }
 
   @Get('info')
+  @ApiBearerAuth()
   @RequireLogin()
   async getInfo(@UserData('userId') userId: number) {
     const userInfo = await this.userService.findUserDetailById(userId);
